@@ -359,10 +359,13 @@ public:
     if (_fd == -1)
       return false;
     off_t size = lseek(_fd, 0, SEEK_END);
+#define MAP_POPULATE 1
 #ifdef MAP_POPULATE
+    printf("using MAP_POPULATE\n");
     _nodes = (Node*)mmap(
         0, size, PROT_READ, MAP_SHARED | MAP_POPULATE, _fd, 0);
 #else
+    printf("not cusing MAP_POPULATE\n");
     _nodes = (Node*)mmap(
         0, size, PROT_READ, MAP_SHARED, _fd, 0);
 #endif
@@ -393,7 +396,9 @@ public:
   }
 
   void get_nns_by_item(S item, size_t n, size_t search_k, vector<S>* result, vector<T>* distances) {
+    printf("in get_nns_by_item function\n");
     const Node* m = _get(item);
+    printf("mark a\n");
     _get_all_nns(m->v, n, search_k, result, distances);
   }
 
@@ -522,39 +527,56 @@ protected:
   }
 
   void _get_all_nns(const T* v, size_t n, size_t search_k, vector<S>* result, vector<T>* distances) {
+    printf("inside _get_all_nns\n");
     std::priority_queue<pair<T, S> > q;
 
     if (search_k == (size_t)-1)
       search_k = n * _roots.size(); // slightly arbitrary default value
 
+    printf("mark b \n");
     for (size_t i = 0; i < _roots.size(); i++) {
+      printf("root[%d]=%d\n",i,_roots[i]);
       q.push(make_pair(numeric_limits<T>::infinity(), _roots[i]));
     }
-
+    printf("mark c\n");
+    printf("q size: %d\n",q.size());
     vector<S> nns;
     while (nns.size() < search_k && !q.empty()) {
+      printf("nns size: %d, search_k: %d, q empty? %d\n",nns.size(),search_k,q.empty());
       const pair<T, S>& top = q.top();
       T d = top.first;
       S i = top.second;
+      printf("mark ca d: %d, i: %d\n",d,i);
+      //if( i > 10000) exit(1);
+
       Node* nd = _get(i);
+      printf("nd: %p\n",nd);
       q.pop();
+      printf("mark cb\n");
       if (nd->n_descendants == 1) {
+          printf("mark cd\n");
         nns.push_back(i);
       } else if (nd->n_descendants <= _K) {
+          printf("mark ce\n");
         const S* dst = nd->children;
         nns.insert(nns.end(), dst, &dst[nd->n_descendants]);
       } else {
+          printf("mark cf\n");
         T margin = D::margin(nd, v, _f);
+        printf("pushing. d: %f margin: %f, min: %f, child: %d \n",d,+margin,std::min(d,+margin),nd->children[0]);
         q.push(make_pair(std::min(d, +margin), nd->children[1]));
+        printf("pushing. d: %f margin: %f, min: %f, child: %d \n",d,-margin,std::min(d,-margin),nd->children[1]);
         q.push(make_pair(std::min(d, -margin), nd->children[0]));
       }
+      printf("mark cg\n");
     }
-
+    printf("mark d\n");
     // Get distances for all items
     // To avoid calculating distance multiple times for any items, sort by id
     sort(nns.begin(), nns.end());
     vector<pair<T, S> > nns_dist;
     S last = -1;
+    printf("mark e\n");
     for (size_t i = 0; i < nns.size(); i++) {
       S j = nns[i];
       if (j == last)
@@ -562,15 +584,17 @@ protected:
       last = j;
       nns_dist.push_back(make_pair(D::distance(v, _get(j)->v, _f), j));
     }
-
+    printf("mark f\n");
     size_t m = nns_dist.size();
     size_t p = n < m ? n : m; // Return this many items
     std::partial_sort(&nns_dist[0], &nns_dist[p], &nns_dist[m]);
+    printf("mark g\n");
     for (size_t i = 0; i < p; i++) {
       if (distances)
 	distances->push_back(D::normalized_distance(nns_dist[i].first));
       result->push_back(nns_dist[i].second);
     }
+    printf("mark h\n");
   }
 };
 
