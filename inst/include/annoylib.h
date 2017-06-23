@@ -359,19 +359,22 @@ public:
     if (_fd == -1)
       return false;
     off_t size = lseek(_fd, 0, SEEK_END);
-#define MAP_POPULATE 1
+
 #ifdef MAP_POPULATE
-    printf("using MAP_POPULATE\n");
     _nodes = (Node*)mmap(
         0, size, PROT_READ, MAP_SHARED | MAP_POPULATE, _fd, 0);
 #else
-    printf("not cusing MAP_POPULATE\n");
     _nodes = (Node*)mmap(
         0, size, PROT_READ, MAP_SHARED, _fd, 0);
 #endif
 
     _n_nodes = (S)(size / _s);
+    printf("loaded %d nodes\n",_n_nodes);
 
+    for (S i = _n_nodes - 1; i >= 0; i--) {
+        S k = _get(i)->n_descendants;
+        printf("node[%d] descendants: %d\n",i,k);
+    }
     // Find the roots by scanning the end of the file and taking the nodes with most descendants
     S m = -1;
     for (S i = _n_nodes - 1; i >= 0; i--) {

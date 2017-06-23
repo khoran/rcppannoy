@@ -16,7 +16,7 @@ a$build(50)                           	# 50 trees
 a$save("test.tree")
 
 
-b <- new(AnnoyEuclidean, 40)           	# new object, could be in another process
-b$load("test.tree")		# super fast, will just mmap the file
+#b <- new(AnnoyEuclidean, 40)           	# new object, could be in another process
+#b$load("test.tree")		# super fast, will just mmap the file
 
-xx = b$getNNsByItem(1, 40)
+#xx = b$getNNsByItem(1, 40)
